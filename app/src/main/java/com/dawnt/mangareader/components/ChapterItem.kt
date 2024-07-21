@@ -1,6 +1,7 @@
 package com.dawnt.mangareader.components
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -14,12 +15,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.dawnt.mangareader.utils.MangaReaderConnect
+import androidx.navigation.compose.rememberNavController
+import com.dawnt.mangareader.APIClient
 import com.dawnt.mangareader.R
-import com.dawnt.mangareader.screens.MangaScreens
+import com.dawnt.mangareader.schemas.ChapterScheme
+import com.dawnt.mangareader.schemas.MangaScreens
 import com.dawnt.mangareader.ui.theme.Dosis
 import com.dawnt.mangareader.ui.theme.onBackground
 import me.saket.swipe.SwipeAction
@@ -27,11 +31,11 @@ import me.saket.swipe.SwipeableActionsBox
 
 @Composable
 fun ChapterItem(
-    chapter: String,
+    chapter: ChapterScheme,
     nameURL: String,
+    server: Int,
     viewed: Boolean,
-    navController: NavController,
-    APIConn: MangaReaderConnect
+    navController: NavController
 ) {
     val download = SwipeAction(
         onSwipe = { /* TODO: DOWNLOAD */ },
@@ -53,16 +57,20 @@ fun ChapterItem(
                 .fillMaxWidth()
                 .height(56.dp)
                 .clickable {
-                    APIConn.getMangaChapter(nameURL, chapter)
+                    APIClient
+                        .getInstance()
+                        .getMangaChapter(server, nameURL, chapter.url_name)
                     navController.navigate(
                         MangaScreens.MangaChapter.route
-                                + "?nameURL=$nameURL"
-                                + "&chapter=$chapter"
+                                + "?server=$server"
+                                + "&nameURL=$nameURL"
+                                + "&chapterName=${chapter.name}"
+                                + "&chapterURL=${chapter.url_name}"
                     )
                 }
         ) {
             Text(
-                text = "Chapter " + chapter.replace(regex = Regex("[_\\-]"), "."),
+                text = chapter.name,
                 color = if (!viewed) onBackground else onBackground.copy(alpha = 0.3f),
                 style = TextStyle(
                     fontFamily = Dosis,
@@ -74,5 +82,27 @@ fun ChapterItem(
                 modifier = Modifier.padding(start = 12.dp)
             )
         }
+    }
+}
+
+
+@Preview
+@Composable
+private fun ChapterItemPreview() {
+    Column {
+        ChapterItem(
+            chapter = ChapterScheme("Chapter Title", ""),
+            nameURL = "",
+            server = 1,
+            viewed = false,
+            navController = rememberNavController()
+        )
+        ChapterItem(
+            chapter = ChapterScheme("Chapter Title", ""),
+            nameURL = "",
+            server = 1,
+            viewed = true,
+            navController = rememberNavController()
+        )
     }
 }

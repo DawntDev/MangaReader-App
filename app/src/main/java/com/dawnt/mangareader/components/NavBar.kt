@@ -15,14 +15,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.dawnt.mangareader.screens.NavScreens
+import com.dawnt.mangareader.schemas.NavScreens
 import com.dawnt.mangareader.ui.theme.Background
 import com.dawnt.mangareader.ui.theme.Dosis
 import com.dawnt.mangareader.ui.theme.Primary
@@ -40,7 +41,10 @@ fun NavBar(navController: NavController, modifier: Modifier) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         NavScreens.Screens.list.forEach {
-            NavButton(screen = it, isSelected = currentScreen == it.route) {
+            NavButton(
+                screen = it,
+                isSelected = currentScreen == it.route,
+            ) {
                 navController.navigate(it.route)
             }
         }
@@ -55,16 +59,17 @@ private fun NavButton(
 ) {
     val background =
         if (isSelected) Primary.copy(alpha = 0.1f)
-        else Color.Transparent
+        else Background
 
     val textColor =
         if (isSelected) Primary
         else onBackground
+
     Box(
         modifier = Modifier
             .clip(CircleShape)
             .background(background)
-            .clickable(onClick = onClick)
+            .clickable(onClick = onClick, enabled = !isSelected)
     ) {
         Row(
             modifier = Modifier.padding(12.dp),
@@ -92,4 +97,13 @@ private fun NavButton(
             }
         }
     }
+}
+
+@Preview
+@Composable
+private fun NavBarPreview() {
+    NavBar(
+        navController = NavController(LocalContext.current),
+        modifier = Modifier
+    )
 }

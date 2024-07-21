@@ -13,7 +13,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
@@ -35,18 +34,17 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.dawnt.mangareader.APIClient
 import com.dawnt.mangareader.R
 import com.dawnt.mangareader.ui.theme.Background
 import com.dawnt.mangareader.ui.theme.Primary
 import com.dawnt.mangareader.ui.theme.onBackground
 import com.dawnt.mangareader.ui.theme.secondaryBackground
-import com.dawnt.mangareader.utils.MangaReaderConnect
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchBar(
-    APIConn: MangaReaderConnect,
     genres: Map<String, Color>,
     modifier: Modifier
 ) {
@@ -55,7 +53,12 @@ fun SearchBar(
     var isOpen by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
 
-    LaunchedEffect(text, selectGenres) { APIConn.getMangaSearch(text, selectGenres.toTypedArray()) }
+    LaunchedEffect(text, selectGenres) {
+        APIClient.getInstance().getMangaSearch(
+            text,
+            selectGenres.toTypedArray()
+        )
+    }
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -74,12 +77,16 @@ fun SearchBar(
                 keyboardActions = KeyboardActions(
                     onDone = { focusManager.clearFocus() }
                 ),
-                colors = TextFieldDefaults.textFieldColors(
-                    containerColor = secondaryBackground,
-                    textColor = onBackground,
+                colors = TextFieldDefaults.colors(
                     cursorColor = onBackground,
                     focusedIndicatorColor = Primary,
-                    unfocusedIndicatorColor = Color.Unspecified
+                    unfocusedIndicatorColor = Color.Unspecified,
+                    focusedContainerColor = secondaryBackground,
+                    unfocusedContainerColor = secondaryBackground,
+                    disabledContainerColor = secondaryBackground,
+                    focusedTextColor = onBackground,
+                    unfocusedTextColor = onBackground,
+                    disabledTextColor = onBackground,
                 ),
                 modifier = Modifier
                     .fillMaxWidth(0.85f)
@@ -175,4 +182,17 @@ fun SearchBar(
             }
         }
     }
+}
+
+@Preview
+@Composable
+private fun SearchBarPreview() {
+    SearchBar(
+        genres = mapOf(
+            "genre1" to Color.Red,
+            "genre2" to Color.Green,
+            "genre3" to Color.Blue
+            ),
+        modifier = Modifier
+    )
 }

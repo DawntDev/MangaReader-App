@@ -20,9 +20,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.dawnt.mangareader.utils.MangaReaderConnect
+import com.dawnt.mangareader.APIClient
 import com.dawnt.mangareader.R
-import com.dawnt.mangareader.screens.MangaScreens
+import com.dawnt.mangareader.schemas.ChapterScheme
+import com.dawnt.mangareader.schemas.MangaScreens
 import com.dawnt.mangareader.ui.theme.Dosis
 import com.dawnt.mangareader.ui.theme.onBackground
 import com.dawnt.mangareader.ui.theme.secondaryBackground
@@ -30,10 +31,10 @@ import com.dawnt.mangareader.ui.theme.secondaryBackground
 @Composable
 fun ChapterNavBar(
     navController: NavController,
-    APIConn: MangaReaderConnect,
+    server: Int,
     nameURL: String,
-    currentChapter: String,
-    chapters: Array<String>,
+    currentChapter: ChapterScheme,
+    chapters: Array<ChapterScheme>,
     fromUserView: Boolean
 ) {
     val index = chapters.indexOf(currentChapter)
@@ -51,12 +52,14 @@ fun ChapterNavBar(
         nextChapter?.let {
             TextButton(
                 onClick = {
-                    APIConn.getMangaChapter(nameURL, nextChapter)
+                    APIClient.getInstance().getMangaChapter(server, nameURL, nextChapter.url_name)
                     navController.popBackStack()
                     navController.navigate(
                         MangaScreens.MangaChapter.route
-                                + "?nameURL=${nameURL}"
-                                + "&chapter=$nextChapter"
+                                + "?server=$server"
+                                + "&nameURL=$nameURL"
+                                + "&chapterName=${nextChapter.name}"
+                                + "&chapterURL=${nextChapter.url_name}"
                                 + "&fromUserView=$fromUserView"
                     )
                 }, modifier = Modifier
@@ -72,7 +75,7 @@ fun ChapterNavBar(
                         tint = onBackground,
                         modifier = Modifier.size(32.dp)
                     )
-                    ChapterLabel(text = it)
+                    ChapterLabel(text = it.name)
                 }
             }
         } ?: run {
@@ -86,12 +89,16 @@ fun ChapterNavBar(
         prevChapter?.let {
             TextButton(
                 onClick = {
-                    APIConn.getMangaChapter(nameURL, prevChapter)
+                    APIClient
+                        .getInstance()
+                        .getMangaChapter(server, nameURL, prevChapter.url_name)
                     navController.popBackStack()
                     navController.navigate(
                         MangaScreens.MangaChapter.route
-                                + "?nameURL=$nameURL"
-                                + "&chapter=$prevChapter"
+                                + "?server=$server"
+                                + "&nameURL=$nameURL"
+                                + "&chapterName=${prevChapter.name}"
+                                + "&chapterURL=${prevChapter.url_name}"
                                 + "&fromUserView=$fromUserView"
                     )
                 },
@@ -100,7 +107,7 @@ fun ChapterNavBar(
                     .weight(1f)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    ChapterLabel(text = it)
+                    ChapterLabel(text = it.name)
                     Icon(
                         painter = painterResource(id = R.drawable.baseline_arrow_24),
                         contentDescription = "Next Chapter",
@@ -126,7 +133,7 @@ fun ChapterNavBar(
 @Composable
 private fun ChapterLabel(text: String) {
     Text(
-        text = "Chapter " + text.replace(regex = Regex("[_\\-]"), "."),
+        text = text,
         color = onBackground,
         style = TextStyle(
             fontFamily = Dosis,

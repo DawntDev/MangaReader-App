@@ -1,6 +1,5 @@
 package com.dawnt.mangareader.components
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -21,34 +20,30 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
+import com.dawnt.mangareader.APIClient
 import com.dawnt.mangareader.R
-import com.dawnt.mangareader.screens.MangaScreens
+import com.dawnt.mangareader.schemas.MangaScheme
+import com.dawnt.mangareader.schemas.MangaScreens
 import com.dawnt.mangareader.ui.theme.Dosis
 import com.dawnt.mangareader.ui.theme.Primary
 import com.dawnt.mangareader.ui.theme.onBackground
 import com.dawnt.mangareader.ui.theme.secondaryBackground
-import com.dawnt.mangareader.utils.MangaReaderConnect
-import com.dawnt.mangareader.utils.loadImage
 
 @Composable
 fun SearchItem(
     navController: NavController,
-    APIConn: MangaReaderConnect,
-    title: String,
-    typeOf: String,
-    rating: Float,
-    genres: Map<String, Color>,
-    nameURL: String,
-    coverURL: String?
+    item: MangaScheme,
+    genres: Map<String, Color>
 ) {
     Row(
         modifier = Modifier
@@ -58,23 +53,24 @@ fun SearchItem(
             .clip(RoundedCornerShape(12.dp))
             .background(secondaryBackground)
             .clickable {
-                APIConn.getMangaDetails(nameURL)
+                APIClient
+                    .getInstance()
+                    .getMangaDetails(item.server, item.name_url)
                 navController.navigate(MangaScreens.MangaDetails.route)
             }
     ) {
-        val image = loadImage(URL = coverURL)
-        image.value?.let {
-            Image(
-                bitmap = it.asImageBitmap(),
-                contentDescription = "Cover Manga",
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .padding(horizontal = 6.dp, vertical = 6.dp)
-                    .width(112.dp)
-                    .height(165.dp)
-                    .clip(RoundedCornerShape(10.dp))
-            )
-        }
+        CoilImage(
+            url = item.cover_url,
+            contentDescription = "Cover Manga",
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .padding(horizontal = 6.dp, vertical = 6.dp)
+                .width(112.dp)
+                .height(165.dp)
+                .clip(RoundedCornerShape(10.dp))
+        )
+
+
         Column(
             verticalArrangement = Arrangement.SpaceEvenly,
             modifier = Modifier
@@ -82,7 +78,7 @@ fun SearchItem(
                 .fillMaxSize()
         ) {
             Text(
-                text = title,
+                text = item.title,
                 style = TextStyle(
                     fontFamily = Dosis,
                     fontWeight = FontWeight.Medium,
@@ -107,7 +103,7 @@ fun SearchItem(
                         .size(24.dp)
                 )
                 Text(
-                    text = "$rating",
+                    text = "${item.rating}",
                     color = onBackground,
                     modifier = Modifier.padding(end = 6.dp),
                     style = TextStyle(
@@ -125,7 +121,7 @@ fun SearchItem(
                     modifier = Modifier.size(36.dp)
                 )
                 Text(
-                    text = typeOf,
+                    text = item.type_of.replaceFirstChar(Char::uppercaseChar),
                     color = onBackground,
                     style = TextStyle(
                         fontFamily = Dosis,
@@ -149,4 +145,29 @@ fun SearchItem(
             }
         }
     }
+}
+
+@Preview
+@Composable
+private fun SearchItemPreview() {
+    SearchItem(
+        navController = rememberNavController() ,
+        item = MangaScheme(
+            title = "Manga Title",
+            rating = 4.5f,
+            type_of = "Manhwa",
+            genres = arrayOf("genre1", "genre2", "genre3"),
+            cover_url = null,
+            server = 1,
+            name_url = "manga1",
+            overview = "Manga Overview",
+            chapters_list = arrayOf(),
+            nsfw = false
+        ),
+        genres = mapOf(
+            "genre1" to Color.Red,
+            "genre2" to Color.Green,
+            "genre3" to Color.Blue
+        )
+    )
 }

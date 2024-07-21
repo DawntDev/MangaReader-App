@@ -1,7 +1,6 @@
 package com.dawnt.mangareader.components
 
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -14,34 +13,36 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
 import androidx.navigation.NavController
-import com.dawnt.mangareader.utils.MangaReaderConnect
-import com.dawnt.mangareader.schemas.MangaPreview
-import com.dawnt.mangareader.screens.MangaScreens
-import com.dawnt.mangareader.utils.loadImage
+import androidx.navigation.compose.rememberNavController
+import com.dawnt.mangareader.APIClient
+import com.dawnt.mangareader.schemas.MangaPreviewScheme
+import com.dawnt.mangareader.schemas.MangaScreens
 import kotlin.math.absoluteValue
 
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ImageCarousel(
-    elements: Array<MangaPreview>,
-    APIConn: MangaReaderConnect,
+    elements: Array<MangaPreviewScheme>,
     navController: NavController,
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(horizontal = 85.dp)
 ) {
-    val pagerState = rememberPagerState(initialPage = 2)
+    val pagerState = rememberPagerState(
+        initialPage = 2,
+        pageCount = { elements.size }
+    )
+
     Row(
         modifier = Modifier.fillMaxWidth()
     ) {
         HorizontalPager(
-            pageCount = elements.size,
             state = pagerState,
             contentPadding = contentPadding,
             modifier = modifier.height(280.dp)
@@ -50,7 +51,12 @@ fun ImageCarousel(
                 shape = RoundedCornerShape(10.dp),
                 modifier = Modifier
                     .clickable {
-                        APIConn.getMangaDetails(elements[it].nameURL)
+                        APIClient
+                            .getInstance()
+                            .getMangaDetails(
+                                elements[it].server,
+                                elements[it].name_url
+                            )
                         navController.navigate(MangaScreens.MangaDetails.route)
                     }
                     .graphicsLayer {
@@ -71,18 +77,31 @@ fun ImageCarousel(
                         )
                     }
             ) {
-                val image = loadImage(URL = elements[it].coverURL)
-                image.value?.let { img ->
-                    Image(
-                        bitmap = img.asImageBitmap(),
-                        contentDescription = "Manga Image $it",
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .width(180.dp)
-                            .height(270.dp)
-                    )
-                }
+                CoilImage(
+                    url = elements[it].cover_url,
+                    contentDescription = "Manga Image ${elements[it].name_url}",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .width(180.dp)
+                        .height(270.dp)
+                )
+
             }
         }
     }
+}
+
+
+@Preview
+@Composable
+private fun ImageCarouselPreview() {
+    ImageCarousel(
+        elements = arrayOf(
+            MangaPreviewScheme("Manga Title", "", 1, ""),
+            MangaPreviewScheme("Manga Title", "", 1, ""),
+            MangaPreviewScheme("Manga Title", "", 1, ""),
+        ),
+        navController = rememberNavController(),
+        contentPadding = PaddingValues(horizontal = 85.dp)
+    )
 }

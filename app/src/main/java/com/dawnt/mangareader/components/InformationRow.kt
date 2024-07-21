@@ -11,8 +11,8 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Divider
 import androidx.compose.material3.Text
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -26,55 +26,55 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
+import com.dawnt.mangareader.DataStoreManager
 import com.dawnt.mangareader.R
-import com.dawnt.mangareader.schemas.MangaPreview
+import com.dawnt.mangareader.schemas.MangaPreviewScheme
 import com.dawnt.mangareader.ui.theme.Dosis
 import com.dawnt.mangareader.ui.theme.onBackground
 import com.dawnt.mangareader.ui.theme.secondaryBackground
-import com.dawnt.mangareader.utils.DataStorage
 import kotlinx.coroutines.delay
 
 @Composable
 fun InformationRow(
     rating: Float,
     typeOf: String,
-    mangaPreview: MangaPreview
+    mangaPreview: MangaPreviewScheme
 ) {
     var startAnimation by remember { mutableStateOf(false) }
-    var startMarkAnimation by remember {
-        mutableStateOf(
-            DataStorage.currentFavoriteMangas.contains(
-                mangaPreview
-            )
-        )
-    }
-    var reverseMarkAnimation by remember { mutableStateOf(!startMarkAnimation) }
+    var startMarkAnimation by remember { mutableStateOf(false) }
+    var reverseMarkAnimation by remember { mutableStateOf(false) }
 
+    LaunchedEffect(Unit) {
+        startMarkAnimation = DataStoreManager
+            .getFavoriteMangas()
+            .contains(mangaPreview)
+
+        delay(300)
+        reverseMarkAnimation = !startMarkAnimation
+        startAnimation = true
+    }
+
+    // TODO: CHECK INTEGRATION
     LaunchedEffect(reverseMarkAnimation) {
         if (!reverseMarkAnimation) {
-            if (!DataStorage.currentFavoriteMangas.contains(mangaPreview)) {
-                DataStorage.currentFavoriteMangas.add(0, mangaPreview)
-                DataStorage.saveFavoriteMangas()
-                DataStorage.saveVisibility(mangaPreview.nameURL, true)
+            if (!DataStoreManager.getFavoriteMangas().contains(mangaPreview)) {
+                DataStoreManager.changeFavoriteState(mangaPreview)
+//                DataStorage.saveVisibility(mangaPreview.nameURL, true)
             }
         } else {
-            if (DataStorage.currentFavoriteMangas.contains(mangaPreview)) {
-                DataStorage.currentFavoriteMangas.remove(mangaPreview)
-                DataStorage.saveFavoriteMangas()
+            if (DataStoreManager.getFavoriteMangas().contains(mangaPreview)) {
+                DataStoreManager.changeFavoriteState(mangaPreview)
             }
         }
     }
 
-    LaunchedEffect(Unit) {
-        delay(300)
-        startAnimation = true
-    }
     val starAnim by rememberLottieComposition(
         LottieCompositionSpec.RawRes(
             R.raw.exploding_star
@@ -127,7 +127,7 @@ fun InformationRow(
             )
             LabelInfo(rating.toString(), Modifier.offset(y = (-28).dp))
         }
-        VerticalDivider()
+        Divider()
         Column(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -140,9 +140,9 @@ fun InformationRow(
                     .width(70.dp)
                     .height(70.dp)
             )
-            LabelInfo(typeOf, Modifier.offset(y = (-12).dp))
+            LabelInfo(typeOf.replaceFirstChar(Char::uppercaseChar), Modifier.offset(y = (-12).dp))
         }
-        VerticalDivider()
+        Divider()
         Column(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -167,13 +167,11 @@ fun InformationRow(
 
 
 @Composable
-private fun VerticalDivider() {
-    Divider(
-        color = onBackground,
+private fun Divider() {
+    VerticalDivider(
         thickness = 1.dp,
-        modifier = Modifier
-            .height(56.dp)
-            .width(1.dp)
+        modifier = Modifier.height(56.dp),
+        color = onBackground
     )
 }
 
@@ -191,6 +189,22 @@ private fun LabelInfo(value: String, modifier: Modifier) {
             fontSize = 20.sp,
             lineHeight = 16.sp,
             letterSpacing = 0.5.sp
+        )
+    )
+}
+
+
+@Preview
+@Composable
+private fun InformationRowPreview() {
+    InformationRow(
+        rating = 4.5f,
+        typeOf = "Manga",
+        mangaPreview = MangaPreviewScheme(
+            "Manga Title",
+            "",
+            1,
+            ""
         )
     )
 }

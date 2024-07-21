@@ -11,6 +11,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.dawnt.mangareader.ui.theme.Dosis
@@ -23,7 +24,7 @@ fun GenreIcon(
     onClick: (() -> Unit)? = null
 ) {
     Text(
-        text = genre,
+        text = genre.replaceFirstChar(Char::uppercaseChar),
         color = color,
         style = TextStyle(
             fontFamily = Dosis,
@@ -37,5 +38,14 @@ fun GenreIcon(
             .background(color.copy(alpha = 0.2f))
             .padding(vertical = 4.dp, horizontal = 8.dp)
             .clickable(enabled = onClick != null, onClick = onClick ?: run { {} })
+    )
+}
+
+@Preview
+@Composable
+private fun GenreIconPreview() {
+    GenreIcon(
+        genre = "genre",
+        color = Color.Red
     )
 }
