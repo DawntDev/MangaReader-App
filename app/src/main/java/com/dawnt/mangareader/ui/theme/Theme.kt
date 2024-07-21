@@ -38,6 +38,7 @@ private val LightColorScheme = lightColorScheme(
     */
 )
 
+
 @Composable
 fun MangaReaderTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -54,6 +55,7 @@ fun MangaReaderTheme(
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
     }
+
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {

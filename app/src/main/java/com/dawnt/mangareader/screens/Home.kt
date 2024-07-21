@@ -18,23 +18,26 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.dawnt.mangareader.utils.MangaReaderConnect
+import com.dawnt.mangareader.APIClient
 import com.dawnt.mangareader.components.GridImages
 import com.dawnt.mangareader.components.ImageCarousel
 import com.dawnt.mangareader.components.Loader
 import com.dawnt.mangareader.components.NavBar
 import com.dawnt.mangareader.ui.theme.Background
 import com.dawnt.mangareader.ui.theme.Dosis
+import com.dawnt.mangareader.ui.theme.Primary
 import com.dawnt.mangareader.ui.theme.onBackground
 
 
 @Composable
-fun Home(navController: NavController, APIConn: MangaReaderConnect) {
-    val viewModel: MangaReaderConnect = APIConn
+fun Home(navController: NavController) {
+    val viewModel: APIClient = APIClient.getInstance()
     val data by viewModel.mainScreen.observeAsState()
+    val error by viewModel.requestError.observeAsState()
     val scrollState = rememberScrollState()
 
     Box(
@@ -42,7 +45,6 @@ fun Home(navController: NavController, APIConn: MangaReaderConnect) {
             .fillMaxSize()
             .background(Background)
     ) {
-
         data?.let {
             Column(
                 modifier = Modifier
@@ -51,11 +53,11 @@ fun Home(navController: NavController, APIConn: MangaReaderConnect) {
                     .verticalScroll(scrollState)
             ) {
                 for ((key, value) in it) {
-                    if (key == "carousel") ImageCarousel(value, APIConn, navController)
+                    if (key == "carousel")
+                        ImageCarousel(value, navController)
                     else {
-
                         Text(
-                            text = key,
+                            text = key.replaceFirstChar(Char::uppercaseChar),
                             color = onBackground,
                             modifier = Modifier.padding(vertical = 12.dp),
                             style = TextStyle(
@@ -68,18 +70,38 @@ fun Home(navController: NavController, APIConn: MangaReaderConnect) {
                         )
                         GridImages(
                             items = value,
-                            navController = navController,
-                            APIConn = APIConn
+                            navController = navController
                         )
 
                     }
                 }
                 Spacer(modifier = Modifier.height(56.dp))
             }
-        } ?: run { Loader(modifier = Modifier.align(Alignment.Center)) }
+        } ?: run {
+            if (error != null) {
+                Text(
+                    text = error!!,
+                    color = Primary,
+                    style = TextStyle(
+                        fontFamily = Dosis,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 18.sp,
+                        lineHeight = 24.sp,
+                        textAlign = TextAlign.Justify
+                    ),
+                    modifier = Modifier
+                        .padding(vertical = 20.dp, horizontal = 40.dp)
+                        .align(Alignment.Center)
+                )
+            } else {
+                Loader(modifier = Modifier.align(Alignment.Center))
+            }
+
+        }
         NavBar(
             navController = navController,
             modifier = Modifier.align(Alignment.BottomCenter)
         )
     }
 }
+

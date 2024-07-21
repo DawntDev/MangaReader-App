@@ -1,6 +1,5 @@
-package com.dawnt.mangareader.screens
+package com.dawnt.mangareader.screens.manga
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,12 +18,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -33,23 +35,26 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.dawnt.mangareader.APIClient
+import com.dawnt.mangareader.DataStoreManager
 import com.dawnt.mangareader.components.ChapterItem
+import com.dawnt.mangareader.components.CoilImage
 import com.dawnt.mangareader.components.InformationRow
 import com.dawnt.mangareader.components.Loader
 import com.dawnt.mangareader.components.NavBar
-import com.dawnt.mangareader.schemas.MangaPreview
+import com.dawnt.mangareader.schemas.MangaChapterViewedPreferences
+import com.dawnt.mangareader.schemas.MangaPreviewScheme
 import com.dawnt.mangareader.ui.theme.Background
 import com.dawnt.mangareader.ui.theme.Dosis
+import com.dawnt.mangareader.ui.theme.Primary
 import com.dawnt.mangareader.ui.theme.onBackground
 import com.dawnt.mangareader.ui.theme.secondaryBackground
-import com.dawnt.mangareader.utils.DataStorage
-import com.dawnt.mangareader.utils.MangaReaderConnect
-import com.dawnt.mangareader.utils.loadImage
 
 @Composable
-fun MangaDetail(navController: NavController, APIConn: MangaReaderConnect) {
-    val viewModel: MangaReaderConnect = APIConn
+fun MangaDetail(navController: NavController) {
+    val viewModel: APIClient = APIClient.getInstance()
     val data by viewModel.mangaDetail.observeAsState()
+    val error by viewModel.requestError.observeAsState()
 
     Box(
         modifier = Modifier
@@ -63,19 +68,16 @@ fun MangaDetail(navController: NavController, APIConn: MangaReaderConnect) {
                     .fillMaxWidth()
                     .padding(top = 28.dp, start = 8.dp, end = 8.dp)
             ) {
-                val image = loadImage(URL = it.coverURL)
-                image.value?.let { img ->
-                    Image(
-                        bitmap = img.asImageBitmap(),
-                        contentDescription = it.nameURL,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier
-                            .padding(bottom = 12.dp)
-                            .width(165.dp)
-                            .height(245.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                    )
-                }
+                CoilImage(
+                    url = it.cover_url,
+                    contentDescription = it.name_url,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .padding(bottom = 12.dp)
+                        .width(165.dp)
+                        .height(245.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                )
                 Text(
                     text = it.title,
                     color = onBackground,
@@ -93,8 +95,13 @@ fun MangaDetail(navController: NavController, APIConn: MangaReaderConnect) {
                 )
                 InformationRow(
                     rating = it.rating,
-                    typeOf = it.typeOf,
-                    mangaPreview = MangaPreview(it.title, it.nameURL, it.coverURL)
+                    typeOf = it.type_of,
+                    mangaPreview = MangaPreviewScheme(
+                        it.title,
+                        it.name_url,
+                        it.server,
+                        it.cover_url
+                    )
                 )
                 LazyColumn {
                     item { LabelText(text = "Description") }
@@ -109,7 +116,7 @@ fun MangaDetail(navController: NavController, APIConn: MangaReaderConnect) {
                                 .verticalScroll(rememberScrollState())
                         ) {
                             Text(
-                                text = it.overview,
+                                text = "${it.overview}",
                                 color = onBackground,
                                 textAlign = TextAlign.Justify,
                                 modifier = Modifier.padding(all = 12.dp),
@@ -125,30 +132,59 @@ fun MangaDetail(navController: NavController, APIConn: MangaReaderConnect) {
                     }
                     item { LabelText(text = "Chapters") }
                     item {
-                        val manga = DataStorage.currentChaptersViewed[it.nameURL]
+                        var chaptersViewed by remember {
+                            mutableStateOf<MangaChapterViewedPreferences?>(null)
+                        }
+                        LaunchedEffect(Unit) {
+                            chaptersViewed = DataStoreManager.getChaptersViewed(
+                                server = it.server,
+                                nameURL = it.name_url
+                            )
+                        }
                         LazyColumn(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .heightIn(max = 240.dp, min = 20.dp)
+                                .heightIn(max = 345.dp, min = 20.dp)
                                 .padding(horizontal = 12.dp, vertical = 12.dp)
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(secondaryBackground)
                         ) {
-                            items(it.chapterList) { chapter ->
-                                ChapterItem(
-                                    chapter,
-                                    it.nameURL,
-                                    manga?.chapters?.contains(chapter) ?: false,
-                                    navController,
-                                    APIConn
-                                )
+                            it.chapters_list?.let { list ->
+                                items(list) { chapter ->
+                                    ChapterItem(
+                                        chapter,
+                                        it.name_url,
+                                        it.server,
+                                        chaptersViewed?.chapters?.contains(chapter) ?: false,
+                                        navController
+                                    )
+                                }
                             }
                         }
                     }
                     item { Spacer(modifier = Modifier.height(56.dp)) }
                 }
             }
-        } ?: run { Loader(modifier = Modifier.align(Alignment.Center)) }
+        } ?: run {
+            if (error != null) {
+                Text(
+                    text = error!!,
+                    color = Primary,
+                    style = TextStyle(
+                        fontFamily = Dosis,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 18.sp,
+                        lineHeight = 24.sp,
+                        textAlign = TextAlign.Justify
+                    ),
+                    modifier = Modifier
+                        .padding(vertical = 20.dp, horizontal = 40.dp)
+                        .align(Alignment.Center)
+                )
+            } else {
+                Loader(modifier = Modifier.align(Alignment.Center))
+            }
+        }
         NavBar(
             navController = navController,
             modifier = Modifier.align(Alignment.BottomCenter)

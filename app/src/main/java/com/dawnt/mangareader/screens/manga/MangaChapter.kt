@@ -1,11 +1,10 @@
-package com.dawnt.mangareader.screens
+package com.dawnt.mangareader.screens.manga
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -30,29 +29,35 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavController
-import com.dawnt.mangareader.utils.MangaReaderConnect
+import com.dawnt.mangareader.APIClient
+import com.dawnt.mangareader.DataStoreManager
 import com.dawnt.mangareader.R
 import com.dawnt.mangareader.components.ChapterNavBar
+import com.dawnt.mangareader.components.CoilImage
 import com.dawnt.mangareader.components.Loader
+import com.dawnt.mangareader.schemas.ChapterScheme
+import com.dawnt.mangareader.schemas.MangaChapterViewedPreferences
+import com.dawnt.mangareader.schemas.MangaScreens
 import com.dawnt.mangareader.ui.theme.Background
 import com.dawnt.mangareader.ui.theme.Dosis
+import com.dawnt.mangareader.ui.theme.Primary
 import com.dawnt.mangareader.ui.theme.onBackground
 import com.dawnt.mangareader.ui.theme.secondaryBackground
-import com.dawnt.mangareader.utils.DataStorage
-import com.dawnt.mangareader.utils.loadImage
 
 
 private val REGEX_IMG = Regex(
@@ -73,15 +78,16 @@ private fun isImageURL(string: String): Boolean {
 
 @Composable
 fun MangaChapter(
+    server: Int,
     nameURL: String,
-    chapter: String,
+    chapter: ChapterScheme,
     navController: NavController,
-    APIConn: MangaReaderConnect,
     fromUserView: Boolean = false
 ) {
-    val viewModel: MangaReaderConnect = APIConn
+    val viewModel: APIClient = APIClient.getInstance()
     val data by viewModel.mangaChapter.observeAsState()
     val manga by viewModel.mangaDetail.observeAsState()
+    val error by viewModel.requestError.observeAsState()
 
     val scrollState = rememberLazyListState()
     val isClicked = remember { mutableStateOf(false) }
@@ -115,7 +121,6 @@ fun MangaChapter(
                     IconButton(
                         modifier = Modifier.fillMaxHeight(),
                         onClick = {
-                            println(fromUserView)
                             if (!fromUserView) navController.popBackStack() else {
                                 navController.navigate(MangaScreens.MangaDetails.route)
                             }
@@ -131,7 +136,7 @@ fun MangaChapter(
                         )
                     }
                     Text(
-                        text = "Chapter " + chapter.replace(regex = Regex("[_\\-]"), "."),
+                        text = chapter.name,
                         textAlign = TextAlign.Start,
                         modifier = Modifier.padding(start = 6.dp),
                         color = onBackground,
@@ -156,19 +161,17 @@ fun MangaChapter(
                 items(it) {
                     when {
                         isImageURL(it) -> {
-                            val image = loadImage(URL = it)
-                            image.value?.let { img ->
-                                Image(
-                                    bitmap = img.asImageBitmap(),
-                                    contentDescription = "ImageChapter",
-                                    contentScale = ContentScale.FillWidth,
-                                    modifier = Modifier.fillMaxSize()
-                                )
-                            }
+                            CoilImage(
+                                url = it,
+                                contentDescription = "ImageChapter",
+                                contentScale = ContentScale.FillWidth,
+                                modifier = Modifier.fillMaxSize(),
+                                quality = DataStoreManager.currentConfig.chapterRenderingQuality.filterQuality
+                            )
+
                         }
 
-                        isEncodeB64(it) -> { /* TODO*/
-                        }
+                        isEncodeB64(it) -> { /* TODO*/ }
 
                         else -> {
                             Text(
@@ -189,36 +192,69 @@ fun MangaChapter(
                 }
 
                 item {
-                    val viewedChapters = DataStorage.currentChaptersViewed[nameURL]
-                    viewedChapters?.let { el ->
-                        if (!el.chapters.contains(chapter)) {
-                            LaunchedEffect(Unit) {
-                                DataStorage.saveChaptersViewed(
-                                    nameURL,
-                                    chapter
+                    var chaptersViewed by remember {
+                        mutableStateOf<MangaChapterViewedPreferences?>(null)
+                    }
+
+                    LaunchedEffect(Unit) {
+                        chaptersViewed = DataStoreManager.getChaptersViewed(
+                            server = server,
+                            nameURL = nameURL
+                        )
+
+                        chaptersViewed?.let {
+                            if (it.chapters.contains(chapter))
+                                it.chapters.remove(chapter)
+
+                            it.chapters.add(0, chapter)
+                            DataStoreManager.addChaptersViewed(
+                                server = server,
+                                nameURL = nameURL,
+                                value = it
+                            )
+
+                        } ?: run {
+                            DataStoreManager.addChaptersViewed(
+                                server = server,
+                                nameURL = nameURL,
+                                value = MangaChapterViewedPreferences(
+                                    manga?.title!!,
+                                    manga?.cover_url!!,
+                                    mutableListOf(chapter)
                                 )
-                            }
-                        }
-                    } ?: run {
-                        LaunchedEffect(Unit) {
-                            DataStorage.saveChaptersViewed(
-                                nameURL,
-                                manga?.title!!,
-                                manga?.coverURL!!,
-                                chapter
                             )
                         }
                     }
+
                     ChapterNavBar(
                         navController = navController,
-                        APIConn = APIConn,
+                        server = server,
                         nameURL = nameURL,
                         currentChapter = chapter,
-                        chapters = manga?.chapterList!!,
+                        chapters = manga?.chapters_list!!,
                         fromUserView = fromUserView
                     )
                 }
             }
-        } ?: run { Loader(modifier = Modifier.align(Alignment.Center)) }
+        } ?: run {
+            if (error != null) {
+                Text(
+                    text = error!!,
+                    color = Primary,
+                    style = TextStyle(
+                        fontFamily = Dosis,
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 18.sp,
+                        lineHeight = 24.sp,
+                        textAlign = TextAlign.Justify
+                    ),
+                    modifier = Modifier
+                        .padding(vertical = 20.dp, horizontal = 40.dp)
+                        .align(Alignment.Center)
+                )
+            } else {
+                Loader(modifier = Modifier.align(Alignment.Center))
+            }
+        }
     }
 }
