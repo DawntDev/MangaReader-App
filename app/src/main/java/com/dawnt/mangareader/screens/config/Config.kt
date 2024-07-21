@@ -35,7 +35,6 @@ import com.dawnt.mangareader.ui.theme.Primary
 @Composable
 fun Config(navController: NavController) {
     val viewModel: APIClient = APIClient.getInstance()
-    val currentServers by viewModel.servers.observeAsState()
 
     Box(
         modifier = Modifier
@@ -48,7 +47,7 @@ fun Config(navController: NavController) {
                 .padding(top = 28.dp, start = 8.dp, end = 8.dp)
         ) {
             stickyHeader { Section(name = "Server") }
-            item { ServerSection(currentServers) }
+            item { ServerSection(viewModel) }
             stickyHeader { Section(name = "Content") }
             item { ContentSection() }
             stickyHeader { Section(name = "Memory") }

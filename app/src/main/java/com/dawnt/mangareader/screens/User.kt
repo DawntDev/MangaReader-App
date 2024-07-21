@@ -1,7 +1,10 @@
 package com.dawnt.mangareader.screens
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,8 +15,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -23,8 +28,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -32,8 +40,11 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.dawnt.mangareader.APIClient
 import com.dawnt.mangareader.DataStoreManager
+import com.dawnt.mangareader.R
 import com.dawnt.mangareader.components.CoilImage
+import com.dawnt.mangareader.components.GridImages
 import com.dawnt.mangareader.components.NavBar
+import com.dawnt.mangareader.schemas.ChapterScheme
 import com.dawnt.mangareader.schemas.MangaChapterViewedPreferences
 import com.dawnt.mangareader.schemas.MangaPreviewScheme
 import com.dawnt.mangareader.schemas.MangaScreens
@@ -42,6 +53,9 @@ import com.dawnt.mangareader.ui.theme.Dosis
 import com.dawnt.mangareader.ui.theme.Primary
 import com.dawnt.mangareader.ui.theme.onBackground
 import com.dawnt.mangareader.ui.theme.secondaryBackground
+import me.saket.swipe.SwipeAction
+import me.saket.swipe.SwipeableActionsBox
+import kotlin.math.roundToInt
 
 @Composable
 fun User(navController: NavController) {
@@ -94,43 +108,12 @@ fun User(navController: NavController) {
                 )
             }
 
-            items(favoriteMangas) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(86.dp)
-                        .background(secondaryBackground)
-                        .clickable {
-                            APIClient.getInstance().getMangaDetails(it.server, it.name_url)
-                            navController.navigate(MangaScreens.MangaDetails.route)
-                        }
-                ) {
-                    CoilImage(
-                        url = it.cover_url,
-                        modifier = Modifier
-                            .width(58.dp)
-                            .fillMaxHeight()
-                    )
-                    Column(
-                        modifier = Modifier
-                            .padding(start = 12.dp)
-                            .fillMaxWidth()
-                    ) {
-                        Text(
-                            text = it.title,
-                            color = onBackground,
-                            style = TextStyle(
-                                fontFamily = Dosis,
-                                fontWeight = FontWeight.Normal,
-                                fontSize = 24.sp,
-                                lineHeight = 16.sp,
-                                letterSpacing = 0.5.sp,
-                            )
-                        )
+            item {
+                GridImages(
+                    items = favoriteMangas.toTypedArray(),
+                    navController = navController
+                )
 
-                    }
-                }
             }
 
             item {
@@ -139,49 +122,14 @@ fun User(navController: NavController) {
 
             items(chapterViewed.toList()) {
                 val (nameURL, manga) = it
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(86.dp)
-                        .background(secondaryBackground)
-                ) {
-                    CoilImage(
-                        url = manga.coverURL,
-                        modifier = Modifier
-                            .width(58.dp)
-                            .fillMaxHeight()
-                    )
-                    Column(
-                        modifier = Modifier
-                            .padding(start = 12.dp)
-                            .fillMaxWidth()
-                    ) {
-                        Text(
-                            text = manga.chapters.last().name,
-                            color = onBackground,
-                            style = TextStyle(
-                                fontFamily = Dosis,
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 28.sp,
-                                lineHeight = 16.sp,
-                                letterSpacing = 0.5.sp,
-                            )
-                        )
-                        Text(
-                            text = manga.title,
-                            color = onBackground,
-                            style = TextStyle(
-                                fontFamily = Dosis,
-                                fontWeight = FontWeight.Normal,
-                                fontSize = 24.sp,
-                                lineHeight = 16.sp,
-                                letterSpacing = 0.5.sp,
-                            )
-                        )
-
-                    }
-                }
+                LastChapterViewed(
+                    navController = navController,
+                    server = manga.server,
+                    title = manga.title,
+                    nameURL = nameURL.split("(${manga.server}).").last(),
+                    coverURL = manga.coverURL,
+                    chapter = manga.chapters.last()
+                )
             }
 
             item { Spacer(modifier = Modifier.height(56.dp)) }
@@ -218,6 +166,106 @@ private fun Header(title: String, subtitle: String) {
             letterSpacing = 0.5.sp
         )
     )
+}
+
+@Composable
+private fun LastChapterViewed(
+    navController: NavController,
+    server: Int,
+    title: String,
+    nameURL: String,
+    coverURL: String?,
+    chapter: ChapterScheme,
+) {
+    val apiClient = APIClient.getInstance()
+    var swiped by remember { mutableStateOf(false) }
+    LaunchedEffect(swiped) {
+        if (swiped) {
+            DataStoreManager.changeVisibility(server, nameURL, false)
+        }
+    }
+
+    val unfollow = SwipeAction(
+        onSwipe = { swiped = true },
+        icon = {
+            Icon(
+                modifier = Modifier.padding(16.dp),
+                painter = painterResource(id = R.drawable.outline_close_24),
+                contentDescription = "Close Icon",
+                tint = onBackground
+            )
+        },
+        background = Color(0xFFB63D3D),
+    )
+    AnimatedVisibility(
+        visible = !swiped,
+        exit = slideOutHorizontally(targetOffsetX = { n -> (n * -1.5f).roundToInt() })
+    ) {
+        SwipeableActionsBox(endActions = listOf(unfollow), swipeThreshold = 72.dp) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .padding(vertical = 1.dp)
+                    .fillMaxWidth()
+                    .height(86.dp)
+                    .background(secondaryBackground)
+                    .clickable {
+                        apiClient.getMangaDetails(server, nameURL)
+                        apiClient.getMangaChapter(server, nameURL, chapter.url_name)
+                        navController.navigate(
+                            MangaScreens.MangaChapter.route
+                                    + "?server=${server}"
+                                    + "&nameURL=${nameURL}"
+                                    + "&chapterName=${chapter.name}"
+                                    + "&chapterURL=${chapter.url_name}"
+                                    + "&fromUserView=true"
+                        )
+                    }
+            ) {
+                CoilImage(
+                    url = coverURL,
+                    modifier = Modifier
+                        .width(58.dp)
+                        .fillMaxHeight()
+                )
+                Column(
+                    modifier = Modifier
+                        .padding(start = 12.dp)
+                        .fillMaxWidth()
+                ) {
+                    Text(
+                        text = chapter.name,
+                        color = onBackground,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = TextStyle(
+                            fontFamily = Dosis,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 24.sp,
+                            lineHeight = 16.sp,
+                            letterSpacing = 0.5.sp,
+                        )
+                    )
+                    Text(
+                        text = title,
+                        color = onBackground,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(end = 10.dp),
+                        overflow = TextOverflow.Ellipsis,
+                        style = TextStyle(
+                            fontFamily = Dosis,
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 18.sp,
+                            lineHeight = 18.sp,
+                            letterSpacing = 0.5.sp
+                        )
+                    )
+
+                }
+            }
+        }
+    }
 }
 
 @Preview(showSystemUi = true)

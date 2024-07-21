@@ -50,6 +50,7 @@ class DataStoreManager {
             dataStore.edit {
                 val favorite = it[PreferenceKeys.FavoriteMangas.key]
                 val chaptersViewed = it[PreferenceKeys.ChaptersViewed.key]
+
                 if (favorite == null)
                     it[PreferenceKeys.FavoriteMangas.key] = Json.encodeToString(
                         listOf<MangaPreviewScheme>()
@@ -58,6 +59,8 @@ class DataStoreManager {
                     it[PreferenceKeys.ChaptersViewed.key] = Json.encodeToString(
                         mapOf<String, MangaChapterViewedPreferences>()
                     )
+
+                // TODO: Add manga download
             }
             println(dataStore.data.first())
         }
@@ -72,9 +75,8 @@ class DataStoreManager {
                 it[PreferenceKeys.FavoriteMangas.key] = Json.encodeToString(
                     mutableListOf<MangaPreviewScheme>()
                 )
-                it[PreferenceKeys.DownloadedMangas.key] = Json.encodeToString(
-                    mutableListOf<MangaPreviewScheme>()
-                )
+
+                // TODO: Add manga download
             }
 
             println(dataStore.data.first())
@@ -143,6 +145,26 @@ class DataStoreManager {
                 val storeMangas = it[PreferenceKeys.FavoriteMangas.key]
                 return@map Json.decodeFromString<MutableList<MangaPreviewScheme>>(storeMangas!!)
             }.first()
+        }
+
+        suspend fun changeVisibility(
+            server: Int,
+            nameURL: String,
+            visibility: Boolean
+        ) {
+            val key = "($server).$nameURL"
+            dataStore.edit {
+                val storeMangas = it[PreferenceKeys.ChaptersViewed.key]
+                val mangas =
+                    Json.decodeFromString<MutableMap<String, MangaChapterViewedPreferences>>(
+                        storeMangas!!
+                    )
+
+                mangas[key]?.let { manga ->
+                    manga.visibility = visibility
+                    mangas[key] = manga
+                }
+            }
         }
 
         suspend fun changeFavoriteState(value: MangaPreviewScheme) {

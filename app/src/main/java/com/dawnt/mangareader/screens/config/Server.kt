@@ -3,10 +3,12 @@ package com.dawnt.mangareader.screens.config
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -18,6 +20,7 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,6 +33,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.min
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.dawnt.mangareader.APIClient
@@ -45,8 +49,9 @@ import com.dawnt.mangareader.ui.theme.secondaryBackground
 
 
 @Composable
-fun ServerSection(currentServers: Array<ServerScheme>?) {
+fun ServerSection(viewModel: APIClient) {
     var key by remember { mutableIntStateOf(0) }
+    val currentServers by viewModel.servers.observeAsState()
     val currentConfig = DataStoreManager.currentConfig
     var baseURLEdit by remember { mutableStateOf(currentConfig.baseURL) }
     var changedServer by remember { mutableStateOf(baseURLEdit != currentConfig.baseURL) }
@@ -60,7 +65,7 @@ fun ServerSection(currentServers: Array<ServerScheme>?) {
                 changedServer = false
             }
         } else {
-            if (APIClient.build() && currentServers == null) {
+            if (APIClient.build()) {
                 APIClient.getInstance().getServers()
             }
         }
@@ -110,6 +115,15 @@ fun ServerSection(currentServers: Array<ServerScheme>?) {
         servers.forEach {
             ServerItem(server = it)
         }
+    } ?: run {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(100.dp)
+        ) {
+            Loader()
+        }
     }
 }
 
@@ -120,7 +134,7 @@ private fun ServerItem(server: ServerScheme) {
         horizontalArrangement = Arrangement.SpaceAround,
         modifier = Modifier
             .fillMaxWidth()
-            .height(100.dp)
+            .heightIn(min = 100.dp)
             .padding(vertical = 12.dp, horizontal = 4.dp)
             .clip(RoundedCornerShape(16.dp))
             .background(secondaryBackground)

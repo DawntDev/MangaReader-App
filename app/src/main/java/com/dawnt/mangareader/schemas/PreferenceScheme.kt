@@ -27,9 +27,11 @@ data class ConfigPreferences(
 
 @Serializable
 data class MangaChapterViewedPreferences(
+    val server: Int,
     val title: String,
     val coverURL: String?,
     var chapters: MutableList<ChapterScheme>,
+    var visibility: Boolean = true
 )
 
 

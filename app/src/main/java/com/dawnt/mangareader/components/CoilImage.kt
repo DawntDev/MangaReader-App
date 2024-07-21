@@ -23,7 +23,6 @@ fun CoilImage(
 ) {
     val uri = Uri.parse(url ?: "").buildUpon().scheme("https").build().toString()
     val defaultImage = painterResource(R.drawable.default_image)
-    println(uri)
 
     AsyncImage(
         model = ImageRequest.Builder(LocalContext.current)
