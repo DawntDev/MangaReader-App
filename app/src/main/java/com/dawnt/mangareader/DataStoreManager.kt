@@ -164,6 +164,8 @@ class DataStoreManager {
                     manga.visibility = visibility
                     mangas[key] = manga
                 }
+
+                it[PreferenceKeys.ChaptersViewed.key] = Json.encodeToString(mangas)
             }
         }
 

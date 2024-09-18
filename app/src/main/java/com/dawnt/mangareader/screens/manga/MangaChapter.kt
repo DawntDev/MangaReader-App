@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -38,6 +39,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
@@ -112,7 +114,7 @@ fun MangaChapter(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp)
+                        .heightIn(48.dp, 64.dp)
                         .background(secondaryBackground)
                         .align(Alignment.TopCenter)
                 ) {
@@ -138,6 +140,7 @@ fun MangaChapter(
                         textAlign = TextAlign.Start,
                         modifier = Modifier.padding(start = 6.dp),
                         color = onBackground,
+                        overflow = TextOverflow.Ellipsis,
                         style = TextStyle(
                             fontFamily = Dosis,
                             fontWeight = FontWeight.Normal,
@@ -204,7 +207,7 @@ fun MangaChapter(
                             if (it.chapters.contains(chapter))
                                 it.chapters.remove(chapter)
 
-                            it.chapters.add(0, chapter)
+                            it.chapters.add(chapter)
                             DataStoreManager.addChaptersViewed(
                                 server = server,
                                 nameURL = nameURL,

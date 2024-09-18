@@ -128,7 +128,8 @@ fun User(navController: NavController) {
                     title = manga.title,
                     nameURL = nameURL.split("(${manga.server}).").last(),
                     coverURL = manga.coverURL,
-                    chapter = manga.chapters.last()
+                    chapter = manga.chapters.last(),
+                    visibility = manga.visibility
                 )
             }
 
@@ -176,9 +177,10 @@ private fun LastChapterViewed(
     nameURL: String,
     coverURL: String?,
     chapter: ChapterScheme,
+    visibility: Boolean
 ) {
     val apiClient = APIClient.getInstance()
-    var swiped by remember { mutableStateOf(false) }
+    var swiped by remember { mutableStateOf(!visibility) }
     LaunchedEffect(swiped) {
         if (swiped) {
             DataStoreManager.changeVisibility(server, nameURL, false)

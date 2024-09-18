@@ -66,7 +66,7 @@ fun InformationRow(
         if (!reverseMarkAnimation) {
             if (!DataStoreManager.getFavoriteMangas().contains(mangaPreview)) {
                 DataStoreManager.changeFavoriteState(mangaPreview)
-//                DataStorage.saveVisibility(mangaPreview.nameURL, true)
+                DataStoreManager.changeVisibility(mangaPreview.server, mangaPreview.name_url, true)
             }
         } else {
             if (DataStoreManager.getFavoriteMangas().contains(mangaPreview)) {
